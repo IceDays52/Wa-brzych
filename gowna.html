@@ -1,0 +1,315 @@
+ <!DOCTYPE html>
+   <html>
+   <head>
+    <meta charset="UTF-8" />
+       <title>Wąż!</title>
+    <meta name="stylesheet" url="waz.css"/>
+    <link rel="stylesheet" href="wojtek.css" />
+   </head>
+   <body>
+      <audio class="muzyczka" controls autoplay  loop>
+        <source  src="sussy.mp3">
+    </audio>
+    <img src="Wojtek.png" id="wojtek" class="wojtek" width="1600px" alt="">
+     <canvas id="płótno" width="1000" height="900"></canvas>
+     <script src="https://code.jquery.com/jquery-2.1.0.js"></script>
+     <script>
+       
+           
+        // Variables  **************************************************************************************
+ 
+        var płótno = document.getElementById("płótno");
+        var kontekst = płótno.getContext("2d");
+        var szerokość = płótno.width;
+        var wysokość = płótno.height;
+ 
+        var rozmiarBloku = 10;
+        var szerokośćWBlokach = szerokość / rozmiarBloku;
+        var wysokośćWBlokach = wysokość / rozmiarBloku;
+ 
+        var wynik = 0;
+        var czasAnimacji = 100;
+ 
+        // Variables  **************************************************************************************
+ 
+ 
+        // Functions  **************************************************************************************
+ 
+        var okrąg = function (x,y, promien) {
+        kontekst.beginPath();
+        kontekst.arc(x, y, promien, 0, Math.PI * 2,  true);
+        kontekst.fill();
+ 
+        };
+ 
+        var rysujObramowanie = function () {
+            kontekst.fillStyle = "Gray";
+            kontekst.fillRect(0, 0, szerokość, rozmiarBloku);
+            kontekst.fillRect(0, wysokość - rozmiarBloku, szerokość, rozmiarBloku);
+            kontekst.fillRect(0, 0, rozmiarBloku, wysokość);
+            kontekst.fillRect(szerokość - rozmiarBloku, 0, rozmiarBloku, wysokość);
+            
+        };
+        
+        var rysujWynik = function (wynik) {
+            kontekst.font = "18px Courier";
+            kontekst.fillStyle = "black";
+            kontekst.textAlign = "left";
+            kontekst.textBaseline = "top";
+            kontekst.fillText("Wynik: "+ wynik, rozmiarBloku, rozmiarBloku);
+            wojtek.style.display = "none"
+        };
+ 
+        var koniecGry = function () {
+            clearTimeout(czysc);
+            kontekst.font = "32px Courier";
+            kontekst.textBaseline = "middle";
+            kontekst.fillStyle = "red";
+            kontekst.textAlign = "center";
+            kontekst.fillText("KONIEC GRY", szerokość / 2, wysokość / 2);
+            wojtek.style.display = "inline"
+ 
+        };
+ 
+        var gamePaused = function () {
+            clearTimeout(czysc);
+            kontekst.font = "32px Courier";
+            kontekst.textBaseline = "middle";
+            kontekst.fillStyle = "red";
+            kontekst.textAlign = "center";
+            kontekst.fillText("PAUZA", szerokość / 2, wysokość / 2);
+ 
+        };
+ 
+        // Functions  ****************************************************************************************
+ 
+ 
+        // Blok **********************************************************************************************
+ 
+        var Blok = function (kolumna, wiersz) {
+            this.kolumna = kolumna;
+            this.wiersz = wiersz;
+        };
+ 
+        Blok.prototype.rysujKwadrat = function (kolor) {
+            var x = this.kolumna * rozmiarBloku;
+            var y = this.wiersz * rozmiarBloku;
+            kontekst.fillStyle = kolor;
+            kontekst.fillRect(x, y, rozmiarBloku, rozmiarBloku);
+        };
+ 
+        Blok.prototype.rysujOkrąg = function (kolor) {
+            var środekX = this.kolumna * rozmiarBloku + rozmiarBloku / 2; 
+            var środekY = this.wiersz * rozmiarBloku + rozmiarBloku / 2;
+            kontekst.fillStyle = kolor;
+            okrąg(środekX, środekY, rozmiarBloku / 2);
+ 
+        };
+ 
+        Blok.prototype.porównaj = function (innyBlok) {
+            return this.kolumna === innyBlok.kolumna && this.wiersz === innyBlok.wiersz;
+        };
+ 
+     // Blok **********************************************************************************************
+ 
+ 
+ 
+     // Waz ***********************************************************************************************
+ 
+        var Wąż = function () {
+            this.segmenty = [
+                new Blok(7, 5),
+                new Blok(6, 5),
+                new Blok(5, 5)
+            ];
+            this.kierunek = "prawa";
+            this.nastepnyKierunek = "prawa";
+        };
+ 
+ 
+        Wąż.prototype.rysuj = function () {
+            for(i=0; i < this.segmenty.length ; i=i+2)
+            {
+                this.segmenty[0].rysujKwadrat("Red");
+                this.segmenty[i].rysujKwadrat("Orchid");
+            };
+            for(i=1; i < this.segmenty.length ; i=i+2)
+            {
+             
+                this.segmenty[i].rysujKwadrat("LimeGreen");
+            };
+        };
+ 
+        Wąż.prototype.przesuń = function () {
+            var głowa = this.segmenty[0];
+            var nowaGłowa;
+ 
+            this.kierunek = this.nastepnyKierunek;
+ 
+            if(this.kierunek === "prawa") {
+                nowaGłowa = new Blok(głowa.kolumna + 1, głowa.wiersz);
+            } else if (this.kierunek === "dół") {
+                nowaGłowa = new Blok(głowa.kolumna, głowa.wiersz + 1);
+            } else if (this.kierunek === "lewa") {
+                nowaGłowa = new Blok(głowa.kolumna - 1, głowa.wiersz);
+            } else if (this.kierunek === "góra") {
+                nowaGłowa = new Blok(głowa.kolumna, głowa.wiersz - 1);
+            } else if (this.kierunek === "stop") {
+                nowaGłowa = new Blok(głowa.kolumna, głowa.wiersz);
+            }
+ 
+            if(this.wykryjKolizje(nowaGłowa)) {
+                if(this.kierunek === "stop")
+                {
+                    gamePaused();
+                }
+                else {
+                    koniecGry();
+                return;
+                }
+                 
+            }
+ 
+            this.segmenty.unshift(nowaGłowa);
+ 
+            if(nowaGłowa.porównaj(jabłko.pozycja)) {
+                wynik++;
+                jabłko.przenieś(this.segmenty);
+            } else {
+                this.segmenty.pop();
+            }   
+        };
+ 
+ 
+        Wąż.prototype.wykryjKolizje = function (głowa) {
+            var lewaKolizja = (głowa.kolumna === 0);
+            var góraKolizja = (głowa.wiersz === 0);
+            var dółKolizja = (głowa.wiersz === wysokośćWBlokach - 1);
+            var prawaKolizja = (głowa.kolumna === szerokośćWBlokach - 1);
+ 
+            var ścianaKolizja = lewaKolizja || góraKolizja || dółKolizja || prawaKolizja;
+            var ogonKolizja = false;
+ 
+            for(var i = 0; i < this.segmenty.length; i++) {
+ 
+                if(głowa.porównaj(this.segmenty[i])) {
+                    ogonKolizja = true;
+                }
+            }
+            return ścianaKolizja || ogonKolizja;
+        };
+ 
+        Wąż.prototype.ustawKierunek = function (nowyKierunek) {
+            if(this.kierunek === "góra" && nowyKierunek === "dół") {
+                return;
+            } else if (this.kierunek === "prawa" && nowyKierunek === "lewa") {
+                return;
+            } else if (this. kierunek === "lewa" && nowyKierunek === "prawa") {
+                return;
+            } else if (this.kierunek === "dół" && nowyKierunek === "góra") {
+                return;
+            }
+            this.nastepnyKierunek = nowyKierunek;
+        };
+ 
+ 
+        // Waz ***********************************************************************************************
+ 
+ 
+        // Jablko ********************************************************************************************
+ 
+ 
+        var Jabłko = function () {
+            var q = Math.floor(Math.random() * (szerokośćWBlokach - 2)) + 1;
+            var w = Math.floor(Math.random() * (wysokośćWBlokach - 2)) + 1;
+            this.pozycja = new Blok(q,w);
+        };
+ 
+ 
+        Jabłko.prototype.rysuj = function () {
+            this.pozycja.rysujOkrąg("LimeGreen");
+        };
+ 
+         
+        Jabłko.prototype.przenieś = function (okupowaneSegmenty) {
+           var losowaKolumna = Math.floor(Math.random() * 
+           (szerokośćWBlokach - 2)) + 1;
+           var losowyWiersz = Math.floor(Math.random() * 
+           (wysokośćWBlokach - 2)) + 1;
+           this.pozycja = new Blok(losowaKolumna, losowyWiersz);
+           for(i=0; i < okupowaneSegmenty.length; i++) {
+            if(this.pozycja.porównaj(okupowaneSegmenty)) {
+            this.przenieś(okupowaneSegmenty);
+            return;
+        };
+           };
+         
+            
+            czasAnimacji = czasAnimacji - 5;
+        };
+         
+        // Jablko ********************************************************************************************
+ 
+ 
+        // Main animation ************************************************************************************
+      
+           var wąż = new Wąż();
+           var jabłko = new Jabłko();
+          
+        /*  // Prześlij do funkcji setInterval funkcję odpowiedzialną za animację
+           var IdPrzedziału = setInterval(function () {
+               kontekst.clearRect(0, 0, szerokość, wysokość);
+               rysujWynik(wynik);
+               wąż.przesuń();
+               wąż.rysuj();
+               jabłko.rysuj();
+               rysujObramowanie();
+           }, 137);   */
+ 
+ 
+            var czysc;
+             
+            var pętlaGry = function () {
+ 
+               kontekst.clearRect(0, 0, szerokość, wysokość);
+               rysujWynik(wynik);
+               wąż.przesuń();
+               wąż.rysuj();
+               jabłko.rysuj();
+               rysujObramowanie();
+            // Miejsce na kod, który rysuje i aktualizuje grę
+             czysc =  setTimeout(pętlaGry, czasAnimacji);
+            };
+ 
+            pętlaGry();
+ 
+ 
+        // Main animation ************************************************************************************
+ 
+ 
+        // Keydown event *************************************************************************************
+ 
+        var kierunki = {
+            37: "lewa",
+            38: "góra",
+            39: "prawa",
+            40: "dół",
+            32: "stop"
+        };
+ 
+        $("body").keydown(function(zdarzenie) {
+            var nowyKierunek = kierunki[zdarzenie.keyCode];
+ 
+            if(nowyKierunek !== undefined) {
+                wąż.ustawKierunek(nowyKierunek);
+            }
+        });
+ 
+        // Keydown event *************************************************************************************
+ 
+ 
+         
+       
+       </script>
+   </body>
+   </html>
